@@ -51,3 +51,15 @@ test('invalid or outdated persisted preferences cannot break player startup', ()
   assert.equal(value.cafe, defaults.cafe);
   assert.equal(value.vinyl, defaults.vinyl);
 });
+
+test('a newly added track and an explicit motion choice survive reload', () => {
+  const value = readPreferences('{"track":8,"motion":false}');
+  assert.equal(value.track, 8);
+  assert.equal(value.motion, false);
+});
+
+test('motion follows the system by default and rejects malformed saved choices', () => {
+  assert.equal(readPreferences(null).motion, null);
+  assert.equal(readPreferences('{"motion":"false"}').motion, null);
+  assert.equal(readPreferences('{"motion":true}').motion, true);
+});

@@ -1,3 +1,5 @@
+import { TRACKS } from './catalog.js';
+
 export class FocusTimer {
   constructor(minutes = 25) {
     this.reset(minutes);
@@ -33,7 +35,7 @@ export class FocusTimer {
 }
 
 export function readPreferences(raw) {
-  const defaults = { track: 0, volume: 65, rain: 0, cafe: 12, vinyl: 16 };
+  const defaults = { track: 0, volume: 65, rain: 0, cafe: 12, vinyl: 16, motion: null };
   let parsed;
   try {
     parsed = JSON.parse(raw);
@@ -46,9 +48,10 @@ export function readPreferences(raw) {
       defaults[key] = Math.max(0, Math.min(100, parsed[key]));
     }
   }
-  if (Number.isInteger(parsed.track) && parsed.track >= 0 && parsed.track < 3) {
+  if (Number.isInteger(parsed.track) && parsed.track >= 0 && parsed.track < TRACKS.length) {
     defaults.track = parsed.track;
   }
+  if (typeof parsed.motion === 'boolean') defaults.motion = parsed.motion;
   return defaults;
 }
 

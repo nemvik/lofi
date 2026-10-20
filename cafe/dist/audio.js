@@ -1,31 +1,10 @@
+import { TRACKS } from './catalog.js';
+export { TRACKS } from './catalog.js';
+
 const SAMPLE_RATE = 24000;
 const BARS = 32;
 const TAU = Math.PI * 2;
 const frequency = midi => 440 * 2 ** ((midi - 69) / 12);
-
-export const TRACKS = [
-  {
-    id: 'cafe-creme', title: 'Café crème', subtitle: 'Hřejivé piano a pomalý swing',
-    bpm: 74, key: 'F dur', color: '#d9b77c', scene: 'Místo u okna',
-    chords: [[57, 60, 64, 67], [55, 59, 62, 65], [55, 58, 62, 65], [55, 58, 60, 64]],
-    roots: [41, 40, 43, 36], seed: 143, swing: 0.11, warmth: 4200,
-    melody: [[76, 72, 69, 67], [74, 71, 67, 65], [74, 70, 69, 65], [72, 70, 67, 64]],
-  },
-  {
-    id: 'za-oknem', title: 'Déšť za oknem', subtitle: 'Měkké akordy, hlubší soustředění',
-    bpm: 68, key: 'D moll', color: '#a7bcb5', scene: 'Venku může pršet',
-    chords: [[53, 57, 60, 64], [53, 57, 60, 62], [52, 55, 59, 62], [52, 55, 58, 61]],
-    roots: [38, 46, 43, 45], seed: 249, swing: 0.09, warmth: 3300,
-    melody: [[69, 65, 64, 60], [69, 65, 62, 60], [67, 64, 62, 59], [67, 64, 61, 57]],
-  },
-  {
-    id: 'po-zaviracce', title: 'Po zavíračce', subtitle: 'Pár tónů a nikam nespěchat',
-    bpm: 62, key: 'Es dur', color: '#b5a7c2', scene: 'Ještě jeden řádek',
-    chords: [[55, 58, 62, 65], [55, 58, 60, 63], [53, 56, 60, 63], [53, 56, 58, 62]],
-    roots: [39, 44, 41, 46], seed: 397, swing: 0.12, warmth: 2800,
-    melody: [[74, 70, 67, 65], [72, 70, 67, 63], [72, 68, 65, 63], [70, 68, 65, 62]],
-  },
-];
 
 function randomFrom(seed) {
   return () => {
@@ -67,6 +46,48 @@ function piano(context, destination, midi, time, duration, velocity, pan = 0) {
   modulator.start(time);
   carrier.stop(time + duration + 0.02);
   modulator.stop(time + duration + 0.02);
+}
+
+// Additive voices: nylon-string overtones, soft felt piano, or a vibraphone's
+// inharmonic partials. Each partial decays independently instead of using FM.
+function softVoice(context, destination, midi, time, duration, velocity, pan, kind) {
+  const profiles = {
+    guitar: [[1, 1], [2, 0.36], [3, 0.14], [4, 0.055], [6, 0.018]],
+    felt: [[1, 1], [2, 0.22], [3, 0.055]],
+    vibes: [[1, 1], [4, 0.14], [10, 0.025]],
+  };
+  const panner = context.createStereoPanner();
+  panner.pan.value = pan;
+  const voice = context.createGain();
+  voice.gain.value = kind === 'vibes' ? 0.85 : 1;
+  voice.connect(panner).connect(destination);
+  if (kind === 'vibes') {
+    const tremolo = context.createOscillator();
+    const depth = context.createGain();
+    tremolo.frequency.value = 4.8;
+    depth.gain.value = 0.13;
+    tremolo.connect(depth).connect(voice.gain);
+    tremolo.start(time);
+    tremolo.stop(time + duration + 0.05);
+  }
+  profiles[kind].forEach(([multiple, strength], index) => {
+    const oscillator = context.createOscillator();
+    const envelope = context.createGain();
+    const length = Math.max(0.15, duration / (1 + index * 0.5));
+    oscillator.frequency.value = frequency(midi) * multiple;
+    oscillator.detune.value = kind === 'felt' ? index * 1.4 : 0;
+    envelope.gain.setValueAtTime(0, time);
+    envelope.gain.linearRampToValueAtTime(velocity * strength, time + (kind === 'felt' ? 0.015 : 0.004));
+    envelope.gain.exponentialRampToValueAtTime(0.0001, time + length);
+    oscillator.connect(envelope).connect(voice);
+    oscillator.start(time);
+    oscillator.stop(time + length + 0.02);
+  });
+}
+
+function note(context, destination, kind, midi, time, duration, velocity, pan = 0) {
+  if (kind === 'piano') piano(context, destination, midi, time, duration, velocity, pan);
+  else softVoice(context, destination, midi, time, duration, velocity, pan, kind);
 }
 
 function bass(context, destination, midi, time, duration, velocity) {
@@ -114,12 +135,12 @@ function percussion(context, destination, buffer, time, type, velocity, random) 
   const panner = context.createStereoPanner();
   source.buffer = buffer;
   filter.type = type === 'hat' ? 'highpass' : 'bandpass';
-  filter.frequency.value = type === 'hat' ? 5200 : 1700;
+  filter.frequency.value = type === 'hat' ? 5200 : type === 'brush' ? 2400 : 1700;
   filter.Q.value = 0.6;
   panner.pan.value = type === 'hat' ? 0.24 : -0.12;
-  const duration = type === 'hat' ? 0.065 : 0.16;
+  const duration = type === 'hat' ? 0.065 : type === 'brush' ? 0.28 : 0.16;
   envelope.gain.setValueAtTime(0, time);
-  envelope.gain.linearRampToValueAtTime(velocity, time + 0.004);
+  envelope.gain.linearRampToValueAtTime(velocity, time + (type === 'brush' ? 0.04 : 0.004));
   envelope.gain.exponentialRampToValueAtTime(0.0001, time + duration);
   source.connect(filter).connect(envelope).connect(panner).connect(destination);
   source.start(time, random() * 0.5, duration + 0.01);
@@ -135,10 +156,84 @@ function percussion(context, destination, buffer, time, type, velocity, random) 
   }
 }
 
-/** Render an original 32-bar arrangement, then wrap its effect tails into the beginning. */
+function arrangeCafeBar(context, music, keys, noise, track, bar, random) {
+  const beat = 60 / track.bpm;
+  const start = bar * 4 * beat;
+  const chordIndex = Math.floor(bar / 2) % track.chords.length;
+  const chord = track.chords[chordIndex];
+  const root = track.roots[chordIndex];
+  const style = track.arrangement;
+  const quiet = style === 'half-time' || style === 'nocturne';
+  // The middle eight bars leave room for the melody, then the groove returns.
+  const bridge = bar >= 16 && bar < 24;
+  const dynamics = (bridge ? 0.8 : 1) * (0.94 + 0.06 * Math.sin(bar * Math.PI / 8));
+  const play = (kind, pitch, at, length, level, pan) =>
+    note(context, keys, kind, pitch, start + at * beat, length * beat, level * dynamics, pan);
+
+  if (style === 'arpeggio') {
+    const pattern = bar % 2 ? [0, 3, 1, 2, 0, 2, 3, 1] : [0, 2, 1, 3, 2, 0, 3, 1];
+    pattern.forEach((index, eighth) => {
+      if (bridge && eighth % 2) return;
+      play('guitar', chord[index], eighth * 0.5 + (eighth % 2 ? track.swing : 0),
+        1.8, eighth % 2 ? 0.105 : 0.14, (index - 1.5) * 0.18);
+    });
+  } else {
+    const hits = style === 'bossa' ? (bar % 2 ? [0.5, 2, 3.5] : [0, 1.5, 3])
+      : style === 'shuffle' ? [0, 1.65, 2.7]
+        : style === 'nocturne' ? [0, ...(bar % 4 === 3 ? [2.75] : [])]
+          : [0, ...(bridge ? [] : [bar % 2 ? 2.65 : 1.75])];
+    hits.forEach((hit, hitIndex) => {
+      chord.forEach((pitch, index) => {
+        // A higher top voice in the returning section keeps the long loop moving.
+        const octave = bar >= 32 && index === 3 && bar % 4 < 2 ? 12 : 0;
+        play(track.instrument, pitch + octave, hit + index * 0.015 + random() * 0.008,
+          quiet ? 3.5 : style === 'bossa' ? 1.65 : 2.2,
+          (hitIndex ? 0.068 : 0.093) * (0.9 + random() * 0.2), (index - 1.5) * 0.17);
+      });
+    });
+  }
+
+  const nextRoot = track.roots[(chordIndex + 1) % track.roots.length];
+  const bassLine = style === 'shuffle'
+    ? [[0, root], [1, root + (chord[0] - root + 24) % 12], [2, root + 7], [3, nextRoot - 1]]
+    : style === 'bossa' ? [[0, root], [1.5, root + 7], [2, root + 12], [3.5, root + 7]]
+      : [[0, root], ...(!quiet || bar % 2 ? [[2.5, root + (bar % 2 ? 7 : 12)]] : [])];
+  for (const [hit, pitch] of bassLine) {
+    bass(context, music, pitch, start + hit * beat + 0.008,
+      beat * (quiet ? 2 : style === 'shuffle' ? 0.85 : 1.15), (hit ? 0.15 : 0.23) * dynamics);
+  }
+
+  if (!(style === 'nocturne' && bridge)) {
+    kick(context, music, start, (quiet ? 0.15 : 0.24) * dynamics);
+    if (!quiet) kick(context, music, start + (style === 'bossa' ? 2 : 2.55) * beat, 0.16 * dynamics);
+    const backbeats = quiet ? [2] : [1, 3];
+    backbeats.forEach(hit => percussion(context, music, noise,
+      start + hit * beat + 0.025, style === 'shuffle' ? 'snare' : 'brush',
+      (quiet ? 0.065 : 0.11) * dynamics, random));
+    for (let eighth = 0; eighth < 8; eighth++) {
+      if ((quiet || bridge) && eighth % 2) continue;
+      percussion(context, music, noise,
+        start + (eighth / 2 + (eighth % 2 ? track.swing : 0)) * beat,
+        'hat', (eighth % 2 ? 0.024 : 0.04) * dynamics, random);
+    }
+  }
+  const hasMelody = style === 'vibes' ? bar % 4 >= 2
+    : style === 'nocturne' ? bar % 8 === 5 || bar % 8 === 7
+      : bar % 8 >= 4 || bridge;
+  if (hasMelody) {
+    const phrase = track.melody[chordIndex];
+    const steps = quiet ? [0.75, 2.5] : bar % 2 ? [0.65, 1.65, 3.25] : [0.25, 2.15];
+    steps.forEach((step, index) => play(track.lead,
+      phrase[(index + Math.floor(bar / 8)) % phrase.length], step,
+      style === 'vibes' ? 2.5 : 1.6, quiet ? 0.05 : 0.07, -0.16));
+  }
+}
+
+/** Render an original arrangement, then wrap its effect tails into the beginning. */
 export async function renderTrack(track) {
   const beat = 60 / track.bpm;
-  const frames = Math.round(BARS * 4 * beat * SAMPLE_RATE);
+  const bars = track.bars || BARS;
+  const frames = Math.round(bars * 4 * beat * SAMPLE_RATE);
   const context = new OfflineAudioContext(2, frames + SAMPLE_RATE * 5, SAMPLE_RATE);
   const random = randomFrom(track.seed);
   const noise = noiseBuffer(context, 1, random);
@@ -181,7 +276,11 @@ export async function renderTrack(track) {
   keys.connect(delay).connect(delayFilter).connect(feedback).connect(music);
   feedback.connect(delay);
 
-  for (let bar = 0; bar < BARS; bar++) {
+  for (let bar = 0; bar < bars; bar++) {
+    if (track.arrangement) {
+      arrangeCafeBar(context, music, keys, noise, track, bar, random);
+      continue;
+    }
     const chordIndex = Math.floor(bar / 2) % 4;
     const chord = track.chords[chordIndex];
     const root = track.roots[chordIndex];
@@ -361,12 +460,21 @@ export class LofiEngine {
   }
 
   getBuffer(index) {
+    if (this.current?.index === index) return Promise.resolve(this.current.source.buffer);
+    if (this.cache.has(index)) {
+      const cached = this.cache.get(index);
+      this.cache.delete(index);
+      this.cache.set(index, cached);
+      return cached;
+    }
     if (!this.cache.has(index)) {
       const pending = loadTrack(index).catch(error => {
-        this.cache.delete(index);
+        if (this.cache.get(index) === pending) this.cache.delete(index);
         throw error;
       });
       this.cache.set(index, pending);
+      // Decoded stereo is much larger than MP3: retain only recent selections.
+      while (this.cache.size > 3) this.cache.delete(this.cache.keys().next().value);
     }
     return this.cache.get(index);
   }

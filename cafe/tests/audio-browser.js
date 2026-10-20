@@ -6,7 +6,7 @@ async (page) => {
   await page.waitForFunction(() => document.body.classList.contains('is-playing'));
   await page.getByRole('button', { name: 'Pozastavit hudbu', exact: true }).first().click();
   return page.evaluate(async () => {
-    const { LofiEngine } = await import('./audio.js');
+    const { LofiEngine, TRACKS } = await import('./audio.js');
     const engine = new LofiEngine();
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
     const bounded = async promise => {
@@ -56,7 +56,34 @@ async (page) => {
       }
       await bounded(engine.play(0));
       if (!engine.playing) throw new Error('Playback could not recover after cancellation');
-      return { playingRms, mutedRms, pause: true, switch: true, cancellation: true, recovery: true };
+      await bounded(engine.pause());
+      const tracks = [];
+      for (let index = 0; index < TRACKS.length; index++) {
+        const track = TRACKS[index];
+        const response = await fetch(`./assets/audio/${track.id}.mp3`, { method: 'HEAD' });
+        if (!response.ok) throw new Error(`${track.id}: missing prepared audio`);
+        const buffer = await bounded(engine.getBuffer(index));
+        const expectedFrames = Math.round((track.bars || 32) * 4 * 60 / track.bpm * buffer.sampleRate);
+        if (buffer.length !== expectedFrames) throw new Error(`${track.id}: decoded loop has the wrong length`);
+        let peak = 0;
+        let energy = 0;
+        for (let c = 0; c < buffer.numberOfChannels; c++) {
+          const samples = buffer.getChannelData(c);
+          if (Math.abs(samples[0] - samples.at(-1)) > 0.00001) throw new Error(`${track.id}: broken loop seam`);
+          for (const sample of samples) {
+            if (!Number.isFinite(sample)) throw new Error(`${track.id}: non-finite sample`);
+            peak = Math.max(peak, Math.abs(sample));
+            energy += sample * sample;
+          }
+        }
+        const signalRms = Math.sqrt(energy / buffer.length / buffer.numberOfChannels);
+        if (peak > 1 || signalRms < 0.01) throw new Error(`${track.id}: clipped or silent audio`);
+        tracks.push({ id: track.id, duration: buffer.duration, peak, rms: signalRms });
+      }
+      if (engine.cache.size > 3) throw new Error('Browsing the collection retained more than three decoded tracks');
+      await bounded(engine.play(TRACKS.length - 1));
+      if (engine.current.index !== TRACKS.length - 1) throw new Error('New track did not play');
+      return { playingRms, mutedRms, pause: true, switch: true, cancellation: true, recovery: true, tracks, cachedTracks: engine.cache.size };
     } finally {
       await engine.context?.close();
     }

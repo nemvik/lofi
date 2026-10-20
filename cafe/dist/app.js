@@ -1,5 +1,6 @@
 import { LofiEngine, TRACKS } from './audio.js';
 import { FocusTimer, encodeWav, readPreferences } from './model.js';
+import { CafeScene } from './scene.js';
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
@@ -16,6 +17,24 @@ let timerDone = false;
 let isFocused = false;
 const rememberedSounds = { rain: 35, cafe: 25, vinyl: 25 };
 const soundNames = { rain: 'déšť', cafe: 'zvuky kavárny', vinyl: 'praskání vinylu' };
+const scene = new CafeScene($('#scene-animation'), preferences.motion, (enabled, followsSystem) => {
+  const button = $('#motion-toggle');
+  button.setAttribute('aria-pressed', String(enabled));
+  button.setAttribute('aria-label', enabled ? 'Pozastavit animaci pozadí' : 'Zapnout animaci pozadí');
+  button.title = followsSystem ? 'Animace se řídí nastavením omezeného pohybu v zařízení' : button.getAttribute('aria-label');
+  button.querySelector('span').textContent = enabled ? 'Živá kavárna' : 'Klidný obraz';
+  icon(button, enabled ? 'pause' : 'play');
+});
+
+// One catalog supplies both the score and the visible collection.
+$('#track-list').innerHTML = TRACKS.map((track, index) => `
+  <button class="mood" data-track="${index}" aria-pressed="false">
+    <span class="mood-art mood-art-${track.palette}" aria-hidden="true"><svg><use href="#i-${track.icon}"/></svg></span>
+    <span class="mood-copy"><strong>${track.title}</strong><span>${track.label} <span class="separator">/</span> ${track.bpm} BPM</span></span>
+    <span class="mood-check" aria-hidden="true"><svg><use href="#i-check"/></svg></span>
+  </button>`).join('');
+const collectionMinutes = Math.round(TRACKS.reduce((sum, track) => sum + (track.bars || 32) * 4 / track.bpm, 0));
+$('#collection-count').textContent = `${TRACKS.length} skladeb · ${collectionMinutes} minut klidu`;
 
 function savePreferences() {
   try { localStorage.setItem(storageKey, JSON.stringify(preferences)); } catch { /* The player works without storage. */ }
@@ -198,6 +217,11 @@ $('#master-volume').addEventListener('input', event => {
 $('#mute-button').addEventListener('click', toggleMute);
 $('#focus-mode').addEventListener('click', () => setFocus(!isFocused));
 $('#exit-focus').addEventListener('click', () => setFocus(false));
+$('#motion-toggle').addEventListener('click', () => {
+  preferences.motion = !scene.enabled;
+  scene.setMotion(preferences.motion);
+  savePreferences();
+});
 
 $$('[data-minutes]').forEach(button => button.addEventListener('click', () => {
   timer.reset(Number(button.dataset.minutes));
