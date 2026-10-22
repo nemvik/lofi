@@ -70,6 +70,10 @@ h1 { font-family: var(--serif); font-size: clamp(28px, 2.85vw, 43px); font-weigh
 .section-heading { display: flex; justify-content: space-between; align-items: center; margin: 24px 0 14px; gap: 10px; }
 .section-heading h2 { font-size: 13px; font-weight: 500; margin: 0; }
 .section-heading > span { font-size: 10px; color: var(--quiet); }
+.music-styles { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 15px; }
+.music-styles button { padding: 9px 13px; min-height: 40px; border: 1px solid var(--line); border-radius: 20px; color: var(--muted); font-size: 12px; }
+.music-styles button:hover { color: var(--cream); border-color: #d9b77c55; }
+.music-styles button[aria-pressed="true"] { color: var(--cream); border-color: var(--amber); background: #d9b77c12; }
 .moods { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px; }
 .mood { display: flex; align-items: center; gap: 11px; padding: 13px 10px; border: 1px solid #ffffff0f; border-radius: 9px; text-align: left; position: relative; min-height: 76px; background: #ffffff02; }
 .mood:hover { background: #ffffff05; border-color: #d9b77c55; }

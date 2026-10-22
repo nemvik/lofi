@@ -1,6 +1,7 @@
 import { LofiEngine, TRACKS } from './audio.js';
 import { FocusTimer, encodeWav, readPreferences } from './model.js';
 import { CafeScene } from './scene.js';
+import { STYLES } from './catalog.js';
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
@@ -8,6 +9,7 @@ const storageKey = 'pokoj.preferences.v1';
 let saved = null;
 try { saved = localStorage.getItem(storageKey); } catch { /* Private mode can block storage. */ }
 const preferences = readPreferences(saved);
+let selectedStyle = TRACKS[preferences.track].genre;
 const engine = new LofiEngine();
 const timer = new FocusTimer();
 let wantsPlayback = false;
@@ -27,14 +29,29 @@ const scene = new CafeScene($('#scene-animation'), preferences.motion, (enabled,
 });
 
 // One catalog supplies both the score and the visible collection.
-$('#track-list').innerHTML = TRACKS.map((track, index) => `
+$('#music-styles').innerHTML = [{ id: 'all', title: 'Všechny styly' }, ...STYLES].map(style => `
+  <button data-style="${style.id}" aria-pressed="false">${style.title}</button>`).join('');
+
+function collection() {
+  return TRACKS.map((track, index) => ({ track, index }))
+    .filter(({ track }) => selectedStyle === 'all' || track.genre === selectedStyle);
+}
+
+function renderCollection() {
+  const tracks = collection();
+  $('#track-list').innerHTML = tracks.map(({ track, index }) => `
   <button class="mood" data-track="${index}" aria-pressed="false">
     <span class="mood-art mood-art-${track.palette}" aria-hidden="true"><svg><use href="#i-${track.icon}"/></svg></span>
     <span class="mood-copy"><strong>${track.title}</strong><span>${track.label} <span class="separator">/</span> ${track.bpm} BPM</span></span>
     <span class="mood-check" aria-hidden="true"><svg><use href="#i-check"/></svg></span>
   </button>`).join('');
-const collectionMinutes = Math.round(TRACKS.reduce((sum, track) => sum + (track.bars || 32) * 4 / track.bpm, 0));
-$('#collection-count').textContent = `${TRACKS.length} skladeb · ${collectionMinutes} minut klidu`;
+  const minutes = Math.round(tracks.reduce((sum, { track }) => sum + (track.bars || 32) * 4 / track.bpm, 0));
+  $('#collection-count').textContent = `${tracks.length} ${tracks.length < 5 ? 'skladby' : 'skladeb'} · ${minutes} minut hudby`;
+  $$('#music-styles button').forEach(button => {
+    button.setAttribute('aria-pressed', String(button.dataset.style === selectedStyle));
+  });
+}
+renderCollection();
 
 function savePreferences() {
   try { localStorage.setItem(storageKey, JSON.stringify(preferences)); } catch { /* The player works without storage. */ }
@@ -99,7 +116,7 @@ function updatePlayback(loading = false) {
   $('#play-button').setAttribute('aria-busy', String(loading));
   $('#scene-play').setAttribute('aria-label', wantsPlayback ? 'Pozastavit hudbu' : 'Pustit hudbu');
   $('#scene-play-label').textContent = loading ? 'Chystám tóny…' : playing ? 'Chvíli ticha' : 'Pustit hudbu';
-  $('#scene-status-text').textContent = loading ? 'Rozehříváme piano…' : playing ? 'Teď hraje tvůj klid' : 'Tvoje chvíle klidu';
+  $('#scene-status-text').textContent = loading ? 'Chystáme hudbu…' : playing ? 'Teď hraje tvoje vlna' : 'Tvoje chvíle klidu';
   icon($('#play-button'), wantsPlayback ? 'pause' : 'play');
   icon($('#scene-play'), wantsPlayback ? 'pause' : 'play');
   if ('mediaSession' in navigator) navigator.mediaSession.playbackState = playing ? 'playing' : 'paused';
@@ -150,6 +167,12 @@ function selectTrack(index) {
   else $('#playback-time').textContent = '00:00';
 }
 
+function moveTrack(direction) {
+  const indices = collection().map(({ index }) => index);
+  const position = indices.indexOf(preferences.track);
+  selectTrack(indices[(position + direction + indices.length) % indices.length]);
+}
+
 function toggleMute() {
   engine.setMuted(!engine.muted);
   $('#mute-button').setAttribute('aria-pressed', String(engine.muted));
@@ -186,9 +209,21 @@ function updateTimer() {
 
 $('#play-button').addEventListener('click', togglePlayback);
 $('#scene-play').addEventListener('click', togglePlayback);
-$('#next-track').addEventListener('click', () => selectTrack(preferences.track + 1));
-$('#previous-track').addEventListener('click', () => selectTrack(preferences.track - 1));
-$$('.mood').forEach(button => button.addEventListener('click', () => selectTrack(Number(button.dataset.track))));
+$('#next-track').addEventListener('click', () => moveTrack(1));
+$('#previous-track').addEventListener('click', () => moveTrack(-1));
+$('#track-list').addEventListener('click', event => {
+  const button = event.target.closest('[data-track]');
+  if (button) selectTrack(Number(button.dataset.track));
+});
+$('#music-styles').addEventListener('click', event => {
+  const button = event.target.closest('[data-style]');
+  if (!button) return;
+  selectedStyle = button.dataset.style;
+  renderCollection();
+  const tracks = collection();
+  if (!tracks.some(({ index }) => index === preferences.track)) selectTrack(tracks[0].index);
+  else updateTrack();
+});
 
 for (const kind of ['rain', 'cafe', 'vinyl']) {
   $(`#${kind}-volume`).addEventListener('input', event => {
@@ -292,8 +327,8 @@ document.addEventListener('keydown', event => {
 if ('mediaSession' in navigator) {
   for (const [action, handler] of Object.entries({
     play: startPlayback, pause: pausePlayback,
-    nexttrack: () => selectTrack(preferences.track + 1),
-    previoustrack: () => selectTrack(preferences.track - 1),
+    nexttrack: () => moveTrack(1),
+    previoustrack: () => moveTrack(-1),
   })) {
     try { navigator.mediaSession.setActionHandler(action, handler); } catch { /* Not every platform has every media key. */ }
   }

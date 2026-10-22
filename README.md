@@ -10,7 +10,7 @@ npm run dev
 Potom otevři http://127.0.0.1:4173.
 
 Složku `cafe/dist` lze obsluhovat libovolným statickým webovým serverem.
-Obsahuje devět původních skladeb a animovanou kavárnu, takže nepotřebuje
+Obsahuje patnáct původních skladeb ve třech stylech a animovanou kavárnu, takže nepotřebuje
 externí hudební API.
 
 Pro Vercel nastav **Root Directory `cafe`**, **Framework Other**,

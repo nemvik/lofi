@@ -1,8 +1,14 @@
+export const STYLES = [
+  { id: 'jazz', title: 'Jazzové lo-fi' },
+  { id: 'hiphop', title: 'Lo-fi hip-hop' },
+  { id: 'house', title: 'Chill house' },
+];
+
 // Keep published IDs and their order stable: saved preferences use the index.
 export const TRACKS = [
   {
     id: 'cafe-creme', title: 'Café crème', subtitle: 'Hřejivé piano a pomalý swing',
-    label: 'Jazzové lo-fi', icon: 'cup', palette: 'cafe',
+    genre: 'jazz', label: 'Jazzové lo-fi', icon: 'cup', palette: 'cafe',
     bpm: 74, key: 'F dur', color: '#d9b77c', scene: 'Místo u okna',
     chords: [[57, 60, 64, 67], [55, 59, 62, 65], [55, 58, 62, 65], [55, 58, 60, 64]],
     roots: [41, 40, 43, 36], seed: 143, swing: 0.11, warmth: 4200,
@@ -10,7 +16,7 @@ export const TRACKS = [
   },
   {
     id: 'za-oknem', title: 'Déšť za oknem', subtitle: 'Měkké akordy, hlubší soustředění',
-    label: 'Měkké piano', icon: 'rain', palette: 'rain',
+    genre: 'jazz', label: 'Měkké piano', icon: 'rain', palette: 'rain',
     bpm: 68, key: 'D moll', color: '#a7bcb5', scene: 'Venku může pršet',
     chords: [[53, 57, 60, 64], [53, 57, 60, 62], [52, 55, 59, 62], [52, 55, 58, 61]],
     roots: [38, 46, 43, 45], seed: 249, swing: 0.09, warmth: 3300,
@@ -18,7 +24,7 @@ export const TRACKS = [
   },
   {
     id: 'po-zaviracce', title: 'Po zavíračce', subtitle: 'Pár tónů a nikam nespěchat',
-    label: 'Noční jazz', icon: 'note', palette: 'night',
+    genre: 'jazz', label: 'Noční jazz', icon: 'note', palette: 'night',
     bpm: 62, key: 'Es dur', color: '#b5a7c2', scene: 'Ještě jeden řádek',
     chords: [[55, 58, 62, 65], [55, 58, 60, 63], [53, 56, 60, 63], [53, 56, 58, 62]],
     roots: [39, 44, 41, 46], seed: 397, swing: 0.12, warmth: 2800,
@@ -26,7 +32,7 @@ export const TRACKS = [
   },
   {
     id: 'ranni-filtr', title: 'Ranní filtr', subtitle: 'Kytara, piano a první světlo',
-    label: 'Kávová bossa', icon: 'sun', palette: 'cafe',
+    genre: 'jazz', label: 'Kávová bossa', icon: 'sun', palette: 'cafe',
     bpm: 78, key: 'C dur', color: '#e0be85', scene: 'Den může počkat',
     bars: 48, arrangement: 'bossa', instrument: 'guitar', lead: 'piano',
     chords: [[52, 55, 59, 62], [52, 55, 59, 60], [53, 57, 60, 64], [53, 57, 59, 64]],
@@ -35,7 +41,7 @@ export const TRACKS = [
   },
   {
     id: 'medove-svetlo', title: 'Medové světlo', subtitle: 'Vibrafon v měkkém světle lampy',
-    label: 'Jemný vibrafon', icon: 'sun', palette: 'honey',
+    genre: 'jazz', label: 'Jemný vibrafon', icon: 'sun', palette: 'honey',
     bpm: 72, key: 'B dur', color: '#d6bd84', scene: 'Všechno má svůj čas',
     bars: 32, arrangement: 'vibes', instrument: 'piano', lead: 'vibes',
     chords: [[57, 60, 62, 65], [55, 58, 62, 65], [55, 58, 62, 67], [55, 57, 60, 63]],
@@ -44,7 +50,7 @@ export const TRACKS = [
   },
   {
     id: 'papirove-stranky', title: 'Papírové stránky', subtitle: 'Tiché struny a rozečtený příběh',
-    label: 'Nylonové struny', icon: 'book', palette: 'rain',
+    genre: 'jazz', label: 'Nylonové struny', icon: 'book', palette: 'rain',
     bpm: 70, key: 'A moll', color: '#b5bfa0', scene: 'Jen ty a tvoje myšlenky',
     bars: 48, arrangement: 'arpeggio', instrument: 'guitar', lead: 'guitar',
     chords: [[55, 59, 60, 64], [53, 57, 60, 64], [53, 57, 60, 64], [56, 59, 62, 65]],
@@ -53,7 +59,7 @@ export const TRACKS = [
   },
   {
     id: 'sametovy-vecer', title: 'Sametový večer', subtitle: 'Tlumené piano a sametové dozvuky',
-    label: 'Sametové piano', icon: 'moon', palette: 'night',
+    genre: 'jazz', label: 'Sametové piano', icon: 'moon', palette: 'night',
     bpm: 64, key: 'As dur', color: '#c2adc5', scene: 'Město pomalu utichá',
     bars: 32, arrangement: 'half-time', instrument: 'felt', lead: 'vibes',
     chords: [[55, 58, 60, 63], [55, 58, 60, 65], [53, 56, 60, 63], [55, 58, 61, 65]],
@@ -62,7 +68,7 @@ export const TRACKS = [
   },
   {
     id: 'druhy-salek', title: 'Druhý šálek', subtitle: 'Houpavé piano, basa a ještě doušek',
-    label: 'Lehký swing', icon: 'cup', palette: 'honey',
+    genre: 'jazz', label: 'Lehký swing', icon: 'cup', palette: 'honey',
     bpm: 82, key: 'G dur', color: '#d3b38c', scene: 'Ještě jeden šálek',
     bars: 48, arrangement: 'shuffle', instrument: 'piano', lead: 'guitar',
     chords: [[54, 57, 59, 62], [54, 57, 59, 62], [55, 59, 60, 64], [54, 57, 60, 64]],
@@ -71,11 +77,65 @@ export const TRACKS = [
   },
   {
     id: 'posledni-tramvaj', title: 'Poslední tramvaj', subtitle: 'Pomalé piano pro dlouhé noční řádky',
-    label: 'Půlnoční klid', icon: 'moon', palette: 'blue',
+    genre: 'jazz', label: 'Půlnoční klid', icon: 'moon', palette: 'blue',
     bpm: 60, key: 'G moll', color: '#a2b6c2', scene: 'Na světě je chvíli ticho',
     bars: 48, arrangement: 'nocturne', instrument: 'felt', lead: 'piano',
     chords: [[53, 57, 58, 62], [55, 58, 62, 65], [55, 58, 62, 65], [54, 58, 60, 63]],
     roots: [43, 39, 48, 38], seed: 1081, swing: 0.07, warmth: 2400,
     melody: [[74, 69, 67, 65], [74, 70, 67, 65], [72, 70, 67, 62], [72, 70, 66, 63]],
+  },
+  {
+    id: 'mestsky-puls', title: 'Městský puls', subtitle: 'Hutný beat a houpavé elektrické piano',
+    genre: 'hiphop', label: 'Lo-fi hip-hop', icon: 'note', palette: 'night',
+    bpm: 92, key: 'E moll', color: '#c6aad2', scene: 'Město má svůj rytmus',
+    bars: 48, arrangement: 'boom-bap', instrument: 'piano', lead: 'vibes',
+    chords: [[55, 59, 62, 66], [55, 59, 62, 64], [54, 57, 60, 64], [54, 57, 59, 63]],
+    roots: [40, 36, 45, 47], seed: 1207, swing: 0.12, warmth: 4400,
+    melody: [[78, 74, 71, 67], [76, 74, 71, 67], [76, 72, 69, 66], [75, 71, 69, 66]],
+  },
+  {
+    id: 'na-vlne', title: 'Na vlně', subtitle: 'Synkopovaná basa a cinkavý vibrafon',
+    genre: 'hiphop', label: 'Lo-fi hip-hop', icon: 'sun', palette: 'honey',
+    bpm: 96, key: 'D moll', color: '#ddba87', scene: 'Nech myšlenky plynout',
+    bars: 48, arrangement: 'boom-bap', instrument: 'vibes', lead: 'piano',
+    chords: [[53, 57, 60, 64], [55, 58, 62, 65], [55, 58, 60, 64], [52, 55, 58, 61]],
+    roots: [38, 43, 36, 45], seed: 1321, swing: 0.08, warmth: 4700,
+    melody: [[76, 72, 69, 65], [77, 74, 70, 67], [76, 72, 70, 67], [73, 70, 67, 64]],
+  },
+  {
+    id: 'nocni-linka', title: 'Noční linka', subtitle: 'Průrazný groove s krátkými kytarovými akordy',
+    genre: 'hiphop', label: 'Lo-fi hip-hop', icon: 'moon', palette: 'blue',
+    bpm: 100, key: 'A moll', color: '#a5c3cb', scene: 'Ještě nejsme na konečné',
+    bars: 48, arrangement: 'boom-bap', instrument: 'guitar', lead: 'piano',
+    chords: [[55, 59, 60, 64], [55, 59, 62, 65], [53, 57, 60, 64], [56, 59, 62, 65]],
+    roots: [45, 43, 41, 40], seed: 1459, swing: 0.15, warmth: 4200,
+    melody: [[76, 72, 71, 67], [77, 74, 71, 67], [76, 72, 69, 65], [77, 74, 71, 68]],
+  },
+  {
+    id: 'slunecni-terasa', title: 'Sluneční terasa', subtitle: 'Rovný taneční beat a vzdušné syntezátory',
+    genre: 'house', label: 'Chill house', icon: 'sun', palette: 'honey',
+    bpm: 112, key: 'C dur', color: '#e2c18a', scene: 'Slunce, káva a lehký krok',
+    bars: 64, arrangement: 'house', instrument: 'synth', lead: 'piano',
+    chords: [[52, 55, 59, 62], [52, 55, 59, 60], [53, 57, 60, 64], [53, 57, 59, 62]],
+    roots: [36, 45, 41, 43], seed: 1583, swing: 0, warmth: 6500,
+    melody: [[76, 79, 74, 71], [76, 72, 71, 67], [77, 76, 72, 69], [74, 71, 69, 65]],
+  },
+  {
+    id: 'po-proudu', title: 'Po proudu', subtitle: 'Pulzující basa a třpytivé rozložené akordy',
+    genre: 'house', label: 'Chill house', icon: 'rain', palette: 'rain',
+    bpm: 118, key: 'F dur', color: '#9fcbbf', scene: 'Dnes to plyne samo',
+    bars: 64, arrangement: 'house', instrument: 'synth', lead: 'vibes',
+    chords: [[57, 60, 64, 67], [55, 58, 62, 65], [55, 59, 62, 65], [55, 58, 60, 64]],
+    roots: [41, 46, 43, 36], seed: 1697, swing: 0.015, warmth: 7000,
+    melody: [[79, 76, 72, 69], [77, 74, 70, 67], [77, 74, 71, 67], [76, 72, 70, 67]],
+  },
+  {
+    id: 'zlate-hodiny', title: 'Zlaté hodiny', subtitle: 'Svižné piano nad pevným house rytmem',
+    genre: 'house', label: 'Chill house', icon: 'note', palette: 'cafe',
+    bpm: 122, key: 'G moll', color: '#dcb294', scene: 'Ještě kousek energie',
+    bars: 64, arrangement: 'house', instrument: 'piano', lead: 'synth',
+    chords: [[53, 57, 58, 62], [53, 57, 60, 64], [55, 58, 62, 65], [54, 58, 60, 63]],
+    roots: [43, 41, 39, 38], seed: 1811, swing: 0, warmth: 6200,
+    melody: [[74, 77, 72, 69], [76, 72, 69, 65], [77, 74, 70, 67], [75, 72, 70, 66]],
   },
 ];

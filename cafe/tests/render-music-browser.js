@@ -4,7 +4,9 @@ async (page) => {
   await page.reload();
   const tracks = await page.evaluate(async () => {
     const { TRACKS } = await import('./catalog.js');
-    return TRACKS.map((track, index) => ({ ...track, index })).filter(track => track.arrangement);
+    const requested = new URL(location.href).searchParams.get('render');
+    return TRACKS.map((track, index) => ({ ...track, index }))
+      .filter(track => track.arrangement && (!requested || track.genre === requested || track.id === requested));
   });
   const results = [];
   for (const track of tracks) {

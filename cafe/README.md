@@ -1,6 +1,6 @@
 # Pokoj — lo-fi kavárna
 
-Český přehrávač původní jazzové lo-fi hudby pro soustředění.
+Český přehrávač původní lo-fi hudby pro soustředění i chvíle, kdy chceš víc energie.
 Statická stránka bez frameworku, balíčků a externí hudební služby.
 
 ## Spuštění
@@ -15,9 +15,12 @@ Je potřeba Python 3 pro lokální server; JavaScript běží v prohlížeči.
 
 ## Funkce
 
-- Devět původních skladeb (32–48 taktů, 60–82 BPM), celkem přibližně 20 minut.
-- Elektrické a tlumené piano, syntetická nylonová kytara a vibrafon.
+- Patnáct původních skladeb (32–64 taktů, 60–122 BPM), celkem přibližně 33 minut.
+- Tři styly: jazzové lo-fi (9 skladeb), lo-fi hip-hop (3) a chill house (3).
+- Přepínač stylů včetně celé kolekce; další a předchozí skladba zůstávají ve vybraném stylu.
+- Elektrické a tlumené piano, syntetická nylonová kytara, vibrafon a syntezátory.
 - Bossa, rozložené akordy, lehký swing i pomalé noční aranže s basou a bicími.
+- Houpavý hip-hop s výraznějšími bicími (92–100 BPM) a rovný house beat (112–122 BPM).
 - Bezešvé smyčky přes Web Audio; změna skladby s prolínáním.
 - Předem připravené MP3 pro rychlý start; při nedostupnosti se stejná
   skladba znovu syntetizuje v prohlížeči pomocí `OfflineAudioContext`.
@@ -68,16 +71,21 @@ Produkční větev je `main`; další push spustí automatické nasazení.
 
 Nové skladby jsou vlastní deterministické partitury v `catalog.js`, nikoli
 stažené nahrávky. `tests/render-music-browser.js` je Playwright funkce:
-na lokální stránce vykreslí šest nových aranží, ověří signál a uloží WAV
+na lokální stránce vykreslí aranže, ověří signál a uloží WAV
 mastery do ignorovaného `artifacts/`. Každý se pak zakóduje například:
 
 ```sh
 ffmpeg -i artifacts/pokoj-ranni-filtr.wav -c:a libmp3lame -b:a 128k -map_metadata -1 dist/assets/audio/ranni-filtr.mp3
 ```
 
+Pro vykreslení jednoho stylu otevři před spuštěním skriptu `/?render=hiphop`
+nebo `/?render=house`; parametr přijímá i ID konkrétní skladby.
+
 `tests/audio-browser.js` ověřuje skutečné přehrávání, všechny připravené
 smyčky a omezení cache. `tests/collection-browser.js` ověřuje výběr,
 obnovu nastavení, animaci, omezený pohyb a mobilní zobrazení.
+`tests/styles-browser.js` ověřuje nové styly, filtrování kolekce,
+pohyb mezi skladbami uvnitř stylu a obnovu vybrané skladby po načtení.
 
 Technický základ: [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API),
 [OfflineAudioContext](https://developer.mozilla.org/en-US/docs/Web/API/OfflineAudioContext)

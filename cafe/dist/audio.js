@@ -55,6 +55,7 @@ function softVoice(context, destination, midi, time, duration, velocity, pan, ki
     guitar: [[1, 1], [2, 0.36], [3, 0.14], [4, 0.055], [6, 0.018]],
     felt: [[1, 1], [2, 0.22], [3, 0.055]],
     vibes: [[1, 1], [4, 0.14], [10, 0.025]],
+    synth: [[1, 1], [2, 0.35], [3, 0.16], [4, 0.08]],
   };
   const panner = context.createStereoPanner();
   panner.pan.value = pan;
@@ -229,6 +230,57 @@ function arrangeCafeBar(context, music, keys, noise, track, bar, random) {
   }
 }
 
+// Separate grooves keep the new styles audibly distinct from the cafe jazz.
+function arrangeBeatBar(context, music, keys, noise, track, bar, random) {
+  const beat = 60 / track.bpm;
+  const start = bar * 4 * beat;
+  const house = track.arrangement === 'house';
+  const chordIndex = Math.floor(bar / 2) % track.chords.length;
+  const chord = track.chords[chordIndex];
+  const root = track.roots[chordIndex];
+  const breakdown = bar % 32 >= 24 && bar % 32 < 28;
+  const intro = bar < 4;
+  const dynamics = breakdown ? 0.7 : bar >= 32 ? 1 : 0.9;
+  const play = (kind, pitch, at, length, velocity, pan = 0) =>
+    note(context, keys, kind, pitch, start + at * beat, length * beat, velocity * dynamics, pan);
+
+  const hits = house ? [0.5, 1.5, 2.5, 3.5] : bar % 2 ? [0, 1.75, 3.25] : [0, 2.5];
+  for (const hit of hits) {
+    if (breakdown && hit > 1) continue;
+    chord.forEach((pitch, index) => play(track.instrument, pitch,
+      hit + index * 0.012, house ? 0.65 : 1.2, house ? 0.068 : 0.105, (index - 1.5) * 0.2));
+  }
+  const bassLine = house
+    ? [[0.5, root], [1.5, root], [2.5, root + 12], [3.25, root + 7], [3.5, root]]
+    : [[0, root], [1.75, root + 12], [2.5, root], [3.5, root + 7]];
+  for (const [at, pitch] of bassLine) {
+    if (breakdown && at > 1) continue;
+    bass(context, music, pitch, start + at * beat, beat * (house ? 0.4 : 0.65), 0.27 * dynamics);
+  }
+  if (!breakdown) {
+    const kicks = house ? [0, 1, 2, 3] : bar % 2 ? [0, 1.75, 2.5] : [0, 2, 2.75];
+    kicks.forEach(at => kick(context, music, start + at * beat, house ? 0.37 : 0.4));
+    if (!intro) [1, 3].forEach(at => percussion(context, music, noise,
+      start + (at + (house ? 0 : 0.035)) * beat, 'snare', house ? 0.18 : 0.25, random));
+  }
+  for (let step = 0; step < 8; step++) {
+    if ((intro || breakdown) && step % 2 === 0) continue;
+    const at = step / 2 + (step % 2 ? track.swing : 0);
+    percussion(context, music, noise, start + at * beat, 'hat',
+      (house && step % 2 ? 0.11 : 0.055) * dynamics, random);
+  }
+  if (house && !intro) {
+    [0.25, 1.25, 2.75, 3.25].forEach((at, index) => play('synth',
+      chord[(index + bar) % chord.length] + 12, at, 0.4, 0.035, 0.25));
+  }
+  if (!intro && (bar % 8 >= 4 || breakdown)) {
+    const phrase = track.melody[chordIndex];
+    const steps = house ? [0.25, 1.5, 2.25, 3.5] : [0.5, 1.5 + track.swing, 2.75];
+    steps.forEach((at, index) => play(track.lead,
+      phrase[(index + Math.floor(bar / 8)) % phrase.length], at, house ? 0.7 : 1.15, 0.075, -0.18));
+  }
+}
+
 /** Render an original arrangement, then wrap its effect tails into the beginning. */
 export async function renderTrack(track) {
   const beat = 60 / track.bpm;
@@ -277,6 +329,10 @@ export async function renderTrack(track) {
   feedback.connect(delay);
 
   for (let bar = 0; bar < bars; bar++) {
+    if (track.arrangement === 'boom-bap' || track.arrangement === 'house') {
+      arrangeBeatBar(context, music, keys, noise, track, bar, random);
+      continue;
+    }
     if (track.arrangement) {
       arrangeCafeBar(context, music, keys, noise, track, bar, random);
       continue;
