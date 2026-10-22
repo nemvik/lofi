@@ -21,16 +21,21 @@ Je potřeba Python 3 pro lokální server; JavaScript běží v prohlížeči.
 - Elektrické a tlumené piano, syntetická nylonová kytara, vibrafon a syntezátory.
 - Bossa, rozložené akordy, lehký swing i pomalé noční aranže s basou a bicími.
 - Houpavý hip-hop s výraznějšími bicími (92–100 BPM) a rovný house beat (112–122 BPM).
-- Bezešvé smyčky přes Web Audio; změna skladby s prolínáním.
+- Automatické pokračování další skladbou ve vybraném stylu s krátkým prolínáním.
+- Další skladba se načte a naplánuje předem podle zvukových hodin; při pomalém
+  načítání dál hraje aktuální smyčka. Volbou „Plynule dál“ lze přepnout na opakování jedné skladby.
 - Předem připravené MP3 pro rychlý start; při nedostupnosti se stejná
   skladba znovu syntetizuje v prohlížeči pomocí `OfflineAudioContext`.
-- Samostatný syntetický déšť, kavárna a praskání vinylu.
+- Syntetická kavárna, praskání vinylu a počasí. Jeden ovladač mění intenzitu
+  deště, střešního větru nebo sněhu a větru zároveň v obraze i ve zvuku.
 - Časovač 25/50 minut, pauza/reset a režim soustředění.
 - Export vybrané skladby do stereo 16bitového WAV.
 - Nastavení uložené lokálně, přehrávání vždy až po kliknutí.
 - Animované okno s deštěm, pára nad kávou a jemné světlo lampy a svíček.
 - Čtyři prostředí s náhledy: pixelartový pokoj v dešti, noční střecha,
   zasněžená chata a původní kavárna. Výběr se ukládá nezávisle na hudbě.
+- Drobné příběhy: kočka dřímající na židli, vzdálený vlak s můrou u lampy,
+  liška na zasněžené cestě a tramvaj za oknem původní kavárny.
 - Každá pixelartová scéna má vlastní animaci: déšť a pára, hvězdy s občasnou
   padající hvězdou nebo sníh a kouř z komína.
 - Pozadí lze zastavit i v režimu soustředění. Výchozí pohyb respektuje
@@ -61,7 +66,9 @@ mixér, export WAV, časovač, mobilní šířka a klávesnice.
 - `dist/assets/audio/`: připravené verze vlastních skladeb.
 - `dist/scene.js`: animace zarovnaná s ilustrací, maximálně 24 snímků za sekundu.
 - `dist/backgrounds.js`: prostředí, popisky a souřadnice efektů.
-- `dist/pixel-atmosphere.js`: animace na pixelové mřížce 480 × 270.
+- `dist/pixel-atmosphere.js`: animace a počasí na pixelové mřížce 480 × 270.
+- `dist/scene-stories.js`: drobné příběhy ve scénách.
+- `dist/playlist.js`: výběr další skladby a načasování přechodu.
 - `dist/model.js`: časovač, validace nastavení a WAV kodér.
 - `tests/`: testy chování.
 - `.openai/hosting.json`: identita soukromého Sites projektu.
@@ -94,6 +101,12 @@ obnovu nastavení, animaci, omezený pohyb a mobilní zobrazení.
 pohyb mezi skladbami uvnitř stylu a obnovu vybrané skladby po načtení.
 `tests/backgrounds-browser.js` ověřuje načtení a animace všech prostředí,
 pozastavení, obnovení výběru, režim soustředění a mobilní rozložení.
+`tests/continuous-browser.js` ověřuje automatické přechody na krátkých WAV,
+ruční volbu na hranici přechodu, pauzu, obnovení a změnu stylu.
+`tests/engine-resilience-browser.js` kontroluje skutečný zvuk při prolínání,
+pomalé a neúspěšné načítání další skladby a zrušení starého požadavku.
+`tests/weather-browser.js` ověřuje propojení počasí, uložené volby a mobilní rozložení;
+`tests/stories-browser.js` viditelnost a pohyb malých příběhů.
 
 Technický základ: [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API),
 [OfflineAudioContext](https://developer.mozilla.org/en-US/docs/Web/API/OfflineAudioContext)

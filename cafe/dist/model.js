@@ -36,7 +36,7 @@ export class FocusTimer {
 }
 
 export function readPreferences(raw) {
-  const defaults = { track: 0, volume: 65, rain: 0, cafe: 12, vinyl: 16, motion: null, background: 'rain-room' };
+  const defaults = { track: 0, volume: 65, rain: 0, cafe: 12, vinyl: 16, motion: null, background: 'rain-room', autoNext: true };
   let parsed;
   try {
     parsed = JSON.parse(raw);
@@ -52,6 +52,7 @@ export function readPreferences(raw) {
   if (Number.isInteger(parsed.track) && parsed.track >= 0 && parsed.track < TRACKS.length) {
     defaults.track = parsed.track;
   }
+  if (typeof parsed.autoNext === 'boolean') defaults.autoNext = parsed.autoNext;
   if (typeof parsed.motion === 'boolean') defaults.motion = parsed.motion;
   defaults.background = findBackground(parsed.background).id;
   return defaults;

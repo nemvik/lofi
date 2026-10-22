@@ -2,7 +2,8 @@ import { LofiEngine, TRACKS } from './audio.js';
 import { FocusTimer, encodeWav, readPreferences } from './model.js';
 import { CafeScene } from './scene.js';
 import { STYLES } from './catalog.js';
-import { BACKGROUNDS, findBackground } from './backgrounds.js';
+import { BACKGROUNDS, findBackground, weatherState } from './backgrounds.js';
+import { nextTrackIndex } from './playlist.js';
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
@@ -65,6 +66,7 @@ async function selectBackground(id) {
     preferences.background = background.id;
     scene.setBackground(background);
     updateBackgroundLabels(background);
+    updateWeather();
     $$('[data-background].background-choice').forEach(button => {
       button.setAttribute('aria-pressed', String(button.dataset.background === background.id));
     });
@@ -106,8 +108,33 @@ function renderCollection() {
   $$('#music-styles button').forEach(button => {
     button.setAttribute('aria-pressed', String(button.dataset.style === selectedStyle));
   });
+  updateContinuation();
 }
 renderCollection();
+
+function updateContinuation() {
+  const indices = collection().map(({ index }) => index);
+  engine.setPlaylist(preferences.autoNext ? indices : []);
+  const button = $('#auto-next');
+  button.setAttribute('aria-pressed', String(preferences.autoNext));
+  button.title = preferences.autoNext ? 'Vypnout automatické pokračování' : 'Zapnout automatické pokračování';
+  const next = nextTrackIndex(indices, preferences.track);
+  $('#next-up').textContent = preferences.autoNext && next !== null
+    ? `Následuje: ${TRACKS[next].title}` : 'Tahle skladba může hrát pořád dokola.';
+  $('.loop-label').lastChild.textContent = preferences.autoNext ? ' plynule dál' : ' jedna skladba';
+}
+
+$('#auto-next').addEventListener('click', () => {
+  preferences.autoNext = !preferences.autoNext;
+  updateContinuation();
+  savePreferences();
+});
+engine.onTrackChange = index => {
+  preferences.track = index;
+  updateTrack();
+  savePreferences();
+  updatePlayback();
+};
 
 function savePreferences() {
   try { localStorage.setItem(storageKey, JSON.stringify(preferences)); } catch { /* The player works without storage. */ }
@@ -134,6 +161,19 @@ function updateSlider(input, value) {
   input.style.setProperty('--fill', `${value}%`);
 }
 
+function updateWeather() {
+  const background = findBackground(preferences.background);
+  const weather = weatherState(background, preferences.rain);
+  soundNames.rain = background.weather.name;
+  $('#weather-label').textContent = background.weather.label;
+  $('#rain-volume').setAttribute('aria-label', `Intenzita ${background.weather.name}`);
+  icon($('[data-sound="rain"]'), background.weather.icon);
+  const button = $('[data-sound="rain"]');
+  button.setAttribute('aria-label', `${preferences.rain > 0 ? 'Vypnout' : 'Zapnout'} ${background.weather.label.toLowerCase()}`);
+  engine.setWeather(weather.kind);
+  scene.setWeather(preferences.rain);
+}
+
 function updateSound(kind) {
   const value = preferences[kind];
   updateSlider($(`#${kind}-volume`), value);
@@ -141,6 +181,7 @@ function updateSound(kind) {
   const button = $(`[data-sound="${kind}"]`);
   button.setAttribute('aria-pressed', String(value > 0));
   button.setAttribute('aria-label', `${value > 0 ? 'Vypnout' : 'Zapnout'} ${soundNames[kind]}`);
+  if (kind === 'rain') updateWeather();
   engine.setAmbience(kind, value);
 }
 
@@ -155,6 +196,7 @@ function updateTrack() {
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
   });
+  updateContinuation();
   if ('mediaSession' in navigator && 'MediaMetadata' in window) {
     navigator.mediaSession.metadata = new MediaMetadata({
       title: track.title, artist: 'Pokoj', album: 'Malá lo-fi kavárna',
@@ -179,12 +221,16 @@ function updatePlayback(loading = false) {
   document.title = playing ? `${TRACKS[preferences.track].title} — Pokoj` : 'Pokoj — tvoje lo-fi kavárna';
 }
 
-async function startPlayback() {
+async function startPlayback(index = null) {
+  if (!Number.isInteger(index)) {
+    engine.syncPlayback();
+    index = preferences.track;
+  }
   const token = ++operation;
   wantsPlayback = true;
   updatePlayback(true);
   try {
-    const started = await engine.play(preferences.track);
+    const started = await engine.play(index);
     if (token !== operation || !started) return;
     for (const kind of ['rain', 'cafe', 'vinyl']) updateSound(kind);
     updatePlayback();
@@ -214,19 +260,21 @@ function togglePlayback() {
 }
 
 function selectTrack(index) {
+  engine.syncPlayback();
   index = (index + TRACKS.length) % TRACKS.length;
   if (preferences.track === index) return;
   preferences.track = index;
   updateTrack();
   savePreferences();
-  if (wantsPlayback) startPlayback();
+  if (wantsPlayback) startPlayback(index);
   else $('#playback-time').textContent = '00:00';
 }
 
 function moveTrack(direction) {
+  engine.syncPlayback();
   const indices = collection().map(({ index }) => index);
-  const position = indices.indexOf(preferences.track);
-  selectTrack(indices[(position + direction + indices.length) % indices.length]);
+  const index = nextTrackIndex(indices, preferences.track, direction);
+  if (index !== null) selectTrack(index);
 }
 
 function toggleMute() {
@@ -392,6 +440,7 @@ if ('mediaSession' in navigator) {
 
 setInterval(() => {
   updateTimer();
+  engine.syncPlayback();
   if (engine.current?.index === preferences.track) {
     const elapsed = engine.elapsed;
     const duration = engine.current.source.buffer.duration;

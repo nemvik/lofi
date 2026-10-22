@@ -1,3 +1,4 @@
+import { nextTrackIndex, transitionTiming } from './playlist.js';
 import { TRACKS } from './catalog.js';
 export { TRACKS } from './catalog.js';
 
@@ -447,6 +448,9 @@ function ambienceBuffer(context, kind) {
       const t = i / context.sampleRate;
       if (kind === 'rain') {
         data[i] = (soft * 0.65 + white * 0.12) * (0.8 + 0.15 * Math.sin(TAU * t / seconds));
+      } else if (kind === 'wind' || kind === 'snow') {
+        const gust = .4 + .35 * Math.sin(TAU * t / seconds) ** 2;
+        data[i] = (brown * .65 + soft * .14) * gust * (kind === 'snow' ? .7 : 1);
       } else if (kind === 'vinyl') {
         data[i] = brown * 0.085 + white * 0.003;
         if (random() < 0.00013) data[i] += (random() - 0.5) * 0.15;
@@ -479,6 +483,17 @@ export class LofiEngine {
     this.context = null;
     this.cache = new Map();
     this.ambience = {};
+    this.weatherKind = 'rain';
+    this.weatherSource = null;
+    this.weatherBuffers = new Map();
+    this.ambienceLevels = { rain: 0, cafe: 0, vinyl: 0 };
+    this.playlist = [];
+    this.next = null;
+    this.queueVersion = 0;
+    this.queueTimer = null;
+    this.retryTimer = null;
+    this.preparingNext = null;
+    this.onTrackChange = null;
     this.current = null;
     this.request = 0;
     this.cancelPendingPlay = null;
@@ -507,11 +522,15 @@ export class LofiEngine {
       const source = this.context.createBufferSource();
       const gain = this.context.createGain();
       gain.gain.value = 0;
-      source.buffer = ambienceBuffer(this.context, kind);
+      source.buffer = ambienceBuffer(this.context, kind === 'rain' ? this.weatherKind : kind);
       source.loop = true;
       source.connect(gain).connect(this.master);
       source.start();
       this.ambience[kind] = gain;
+      if (kind === 'rain') {
+        this.weatherSource = source;
+        this.weatherBuffers.set(this.weatherKind, source.buffer);
+      }
     }
   }
 
@@ -542,6 +561,8 @@ export class LofiEngine {
       this.cancelPendingPlay = () => resolve(null);
     });
     this.initialize();
+    this.syncPlayback(false);
+    if (this.current?.index !== index) this.cancelScheduled();
     // Resume synchronously from the click handler before awaiting synthesis.
     // Chromium may leave resume() pending when suspend() immediately follows.
     // Cancellation settles the superseded operation without waiting for it.
@@ -549,39 +570,148 @@ export class LofiEngine {
     if (!resumed || request !== this.request) return false;
     const buffer = await Promise.race([this.getBuffer(index), canceled]);
     if (!buffer || request !== this.request) return false;
+    this.syncPlayback(false);
     if (this.current?.index !== index) {
-      const source = this.context.createBufferSource();
-      const gain = this.context.createGain();
-      source.buffer = buffer;
-      source.loop = true;
-      source.connect(gain).connect(this.master);
+      this.cancelScheduled();
       const now = this.context.currentTime;
-      gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(0.85, now + 1.1);
-      source.start(now);
+      const fade = Math.min(1.1, buffer.duration / 4);
+      const voice = this.createVoice(index, buffer, now, fade);
       if (this.current) {
-        const previous = this.current;
-        previous.gain.gain.cancelAndHoldAtTime(now);
-        previous.gain.gain.linearRampToValueAtTime(0, now + 1.1);
-        previous.source.stop(now + 1.2);
-        previous.source.onended = () => {
-          previous.source.disconnect();
-          previous.gain.disconnect();
-        };
+        this.current.gain.gain.cancelAndHoldAtTime(now);
+        this.current.gain.gain.linearRampToValueAtTime(0, now + fade);
+        this.stopVoice(this.current, now + fade + .05);
       }
-      this.current = { source, gain, index, startedAt: now };
+      this.current = voice;
     }
     this.playing = true;
     this.cancelPendingPlay = null;
+    this.scheduleNext();
+    this.armQueueTimer();
     return true;
   }
 
   async pause() {
+    this.syncPlayback();
+    clearTimeout(this.queueTimer);
+    clearTimeout(this.retryTimer);
     this.request++;
     this.cancelPendingPlay?.();
     this.cancelPendingPlay = null;
     this.playing = false;
     if (this.context) await this.context.suspend();
+  }
+
+  createVoice(index, buffer, startedAt, fade) {
+    const source = this.context.createBufferSource();
+    const gain = this.context.createGain();
+    source.buffer = buffer;
+    // A scheduled successor can always fall back to looping if decoding is slow.
+    source.loop = true;
+    source.connect(gain).connect(this.master);
+    gain.gain.setValueAtTime(0, startedAt);
+    gain.gain.linearRampToValueAtTime(.85, startedAt + fade);
+    source.start(startedAt);
+    return { source, gain, index, startedAt };
+  }
+
+  stopVoice(voice, when = this.context.currentTime) {
+    voice.source.onended = () => {
+      voice.source.disconnect();
+      voice.gain.disconnect();
+    };
+    voice.source.stop(when);
+  }
+
+  setPlaylist(indices) {
+    const valid = [...new Set(indices)].filter(index => Number.isInteger(index) && index >= 0 && index < TRACKS.length);
+    if (valid.length === this.playlist.length && valid.every((index, i) => index === this.playlist[i])) return;
+    this.syncPlayback();
+    this.cancelScheduled();
+    this.playlist = valid;
+    this.scheduleNext();
+  }
+
+  cancelScheduled() {
+    this.queueVersion++;
+    this.preparingNext = null;
+    clearTimeout(this.queueTimer);
+    clearTimeout(this.retryTimer);
+    if (!this.next) return;
+    this.stopVoice(this.next);
+    this.next = null;
+    const now = this.context.currentTime;
+    this.current.gain.gain.cancelAndHoldAtTime(now);
+    this.current.gain.gain.linearRampToValueAtTime(.85, now + .12);
+  }
+
+  async scheduleNext() {
+    const current = this.current;
+    if (!current || this.next || this.preparingNext || !this.playlist.includes(current.index)) return;
+    const index = nextTrackIndex(this.playlist, current.index);
+    if (index === current.index) return;
+    const version = this.queueVersion;
+    this.preparingNext = current;
+    try {
+      const buffer = await this.getBuffer(index);
+      if (version !== this.queueVersion || current !== this.current) return;
+      const { start, fade } = transitionTiming(current.source.buffer.duration, current.startedAt, this.context.currentTime);
+      this.next = { ...this.createVoice(index, buffer, start, fade), fade };
+      current.gain.gain.setValueAtTime(.85, start);
+      current.gain.gain.linearRampToValueAtTime(0, start + fade);
+      this.armQueueTimer();
+    } catch {
+      // Keep the existing loop audible and retry without restarting the song.
+      if (version === this.queueVersion && current === this.current && this.playing) {
+        this.retryTimer = setTimeout(() => this.scheduleNext(), 10000);
+      }
+    } finally {
+      if (version === this.queueVersion) this.preparingNext = null;
+    }
+  }
+
+  armQueueTimer() {
+    clearTimeout(this.queueTimer);
+    if (!this.playing || !this.next) return;
+    const delay = Math.max(0, this.next.startedAt - this.context.currentTime);
+    // The audio graph, rather than this timer, performs the actual crossfade.
+    this.queueTimer = setTimeout(() => {
+      this.syncPlayback();
+      this.armQueueTimer();
+    }, delay * 1000 + 20);
+  }
+
+  syncPlayback(notify = true) {
+    if (!this.next || this.context.currentTime < this.next.startedAt) return;
+    const previous = this.current;
+    const next = this.next;
+    this.current = next;
+    this.next = null;
+    clearTimeout(this.queueTimer);
+    this.stopVoice(previous, Math.max(this.context.currentTime + .01, next.startedAt + next.fade + .05));
+    this.scheduleNext();
+    if (notify) this.onTrackChange?.(next.index);
+  }
+
+  setWeather(kind) {
+    if (!['rain', 'wind', 'snow'].includes(kind) || kind === this.weatherKind) return;
+    this.weatherKind = kind;
+    if (!this.context) return;
+    const previous = this.weatherSource;
+    const previousGain = this.ambience.rain;
+    const source = this.context.createBufferSource();
+    const gain = this.context.createGain();
+    if (!this.weatherBuffers.has(kind)) this.weatherBuffers.set(kind, ambienceBuffer(this.context, kind));
+    source.buffer = this.weatherBuffers.get(kind);
+    source.loop = true;
+    gain.gain.value = 0;
+    source.connect(gain).connect(this.master);
+    source.start();
+    previousGain.gain.setTargetAtTime(0, this.context.currentTime, .1);
+    previous.onended = () => { previous.disconnect(); previousGain.disconnect(); };
+    previous.stop(this.context.currentTime + .7);
+    this.weatherSource = source;
+    this.ambience.rain = gain;
+    this.setAmbience('rain', this.ambienceLevels.rain);
   }
 
   setVolume(percent) {
@@ -595,6 +725,8 @@ export class LofiEngine {
   }
 
   setAmbience(kind, percent) {
+    percent = Math.max(0, Math.min(100, Number.isFinite(percent) ? percent : 0));
+    this.ambienceLevels[kind] = percent;
     const gain = this.ambience[kind];
     if (!gain) return;
     const scale = { rain: 1.8, cafe: 3, vinyl: 3 };
@@ -602,6 +734,7 @@ export class LofiEngine {
   }
 
   get elapsed() {
+    this.syncPlayback();
     return this.current ? this.context.currentTime - this.current.startedAt : 0;
   }
 }

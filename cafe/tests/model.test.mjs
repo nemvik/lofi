@@ -72,3 +72,9 @@ test('background selection survives reload and invalid saved backgrounds use the
   assert.equal(readPreferences('{"background":null}').background, 'rain-room');
   assert.equal(readPreferences(null).background, 'rain-room');
 });
+
+test('automatic continuation defaults on and preserves an explicit single-track choice', () => {
+  assert.equal(readPreferences(null).autoNext, true);
+  assert.equal(readPreferences('{"autoNext":false}').autoNext, false);
+  assert.equal(readPreferences('{"autoNext":"false"}').autoNext, true);
+});

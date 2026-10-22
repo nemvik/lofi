@@ -31,6 +31,8 @@
       <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
       <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M20 3C9 2 3 6 5 14c6 6 14 1 15-11ZM4 21l10-11"/></symbol>
       <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.2"/></symbol>
+      <symbol id="i-wind" viewBox="0 0 24 24"><path d="M3 8h12a3 3 0 1 0-3-3M2 12h17a3 3 0 1 1-3 3M4 16h5a3 3 0 1 1-3 3"/></symbol>
+      <symbol id="i-snow" viewBox="0 0 24 24"><path d="M12 2v20M3.3 7l17.4 10M3.3 17 20.7 7M9 4l3 3 3-3M9 20l3-3 3 3M3 10l4-1-1-4m15 9-4 1 1 4M3 14l4 1-1 4M21 10l-4-1 1-4"/></symbol>
       <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></symbol>
       <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 15A9 9 0 0 1 9 4a9 9 0 1 0 11 11Z"/></symbol>
       <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 5v15M3 4c4-1 6 0 9 1 3-1 5-2 9-1v15c-4-1-6 0-9 1-3-1-5-2-9-1V4Z"/></symbol>
@@ -93,6 +95,10 @@
             <section class="mood-section" aria-labelledby="mood-heading">
               <div class="section-heading"><h2 id="mood-heading">Na jakou vlnu se naladíš?</h2><span id="collection-count"></span></div>
               <div class="music-styles" id="music-styles" role="group" aria-label="Hudební styl"></div>
+              <div class="listening-flow">
+                <button class="flow-toggle" id="auto-next" aria-pressed="true" title="Vypnout automatické pokračování"><svg><use href="#i-next"/></svg><span>Plynule dál</span><i aria-hidden="true"></i></button>
+                <span id="next-up"></span>
+              </div>
               <div class="moods" id="track-list" role="group" aria-label="Výběr skladby"></div>
             </section>
           </div>
@@ -108,10 +114,11 @@
               <p class="panel-description">Malé zvuky, velký rozdíl.</p>
               <div class="sound-row">
                 <div class="sound-top">
-                  <button class="sound-toggle" data-sound="rain" aria-label="Zapnout déšť" aria-pressed="false"><span class="sound-icon"><svg><use href="#i-rain"/></svg></span><span>Déšť</span></button>
+                  <button class="sound-toggle" data-sound="rain" aria-label="Zapnout déšť" aria-pressed="false"><span class="sound-icon"><svg><use href="#i-rain"/></svg></span><span id="weather-label">Déšť</span></button>
                   <output id="rain-value" for="rain-volume">0 %</output>
                 </div>
-                <input id="rain-volume" type="range" min="0" max="100" value="0" aria-label="Hlasitost deště">
+                <input id="rain-volume" type="range" min="0" max="100" value="0" aria-label="Intenzita deště">
+                <span class="weather-note">Počasí mění obraz i zvuk.</span>
               </div>
               <div class="sound-row">
                 <div class="sound-top">
@@ -185,6 +192,8 @@
       <p>„Low fidelity“ znamená nižší věrnost zvuku. Tady jsou drobné nedokonalosti součástí nálady: měkké výšky, teplé jazzové akordy, lehce houpavý rytmus a praskání vinylu. Žádné vokály, které by se pletly do myšlenek.</p>
       <h3>Odkud je hudba?</h3>
       <p>Patnáct původních instrumentálních skladeb ve třech stylech: jazzové lo-fi, houpavý lo-fi hip-hop a svižnější chill house. Piano, nylonová kytara a vibrafon se střídají se syntezátory, basou a bicími. Každá skladba má 32 až 64 taktů s obměnami a plynule se opakuje. Všechny nástroje i zvuky kavárny, vinylu a deště jsou syntetické.</p>
+      <p>Na židli podřimuje kočka, po vzdáleném mostě projíždí vlak a u chaty se občas objeví liška. Jsou to malé příběhy, které nikam nespěchají. Ovladač počasí mění déšť, sníh nebo vítr v obraze i ve zvuku.</p>
+      <p>S volbou „Plynule dál“ přehrávač připraví další skladbu z vybraného stylu a krátce ji prolne s koncem té předchozí. Když volbu vypneš, aktuální skladba se opakuje.</p>
       <p>Vyber si pixelartový pokoj v dešti, noční střechu, zasněženou chatu nebo původní kavárnu. Každé prostředí má vlastní animaci a vybírá se nezávisle na hudbě. Pohyb zastavíš tlačítkem v rohu scény; při systémovém omezení animací je ve výchozím stavu vypnutý.</p>
       <p>Hudbu si můžeš stáhnout tlačítkem v přehrávači jako WAV. Soubor obsahuje vybranou skladbu bez zvuků pozadí.</p>
       <button class="dialog-download" id="dialog-download"><svg><use href="#i-download"/></svg>Stáhnout vybranou skladbu</button>

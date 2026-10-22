@@ -1,5 +1,7 @@
 /** Low-frame-rate, transparent analog atmosphere aligned to the original 1672 × 941 artwork. */
 import { drawPixelAtmosphere } from './pixel-atmosphere.js';
+import { drawSceneStory } from './scene-stories.js';
+import { weatherState, findBackground } from './backgrounds.js';
 
 export class CafeScene {
   constructor(canvas, preference, onChange, background) {
@@ -7,6 +9,7 @@ export class CafeScene {
     this.canvas = canvas;
     this.context = canvas.getContext('2d');
     this.preference = preference;
+    this.weather = 0;
     this.onChange = onChange;
     this.reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
     this.inView = true;
@@ -67,6 +70,11 @@ export class CafeScene {
     this.sync();
   }
 
+  setWeather(percent) {
+    this.weather = Number.isFinite(percent) ? Math.min(100, Math.max(0, percent)) : 0;
+    this.draw();
+  }
+
   setBackground(background) {
     this.background = background;
     this.time = 0;
@@ -123,6 +131,7 @@ export class CafeScene {
     if (!this.context || !this.width || !this.height) return;
     const ctx = this.context;
     const t = this.time;
+    const weather = weatherState(this.background || findBackground('cafe'), this.weather);
     const pixelArt = this.background?.pixel;
     const stageWidth = pixelArt ? 480 : 1672;
     const stageHeight = pixelArt ? 270 : 941;
@@ -132,7 +141,7 @@ export class CafeScene {
     ctx.translate((this.width - stageWidth * scale) * this.position, (this.height - stageHeight * scale) / 2);
     ctx.scale(scale, scale);
     if (pixelArt) {
-      drawPixelAtmosphere(ctx, this.background, t);
+      drawPixelAtmosphere(ctx, this.background, t, weather);
       return;
     }
 
@@ -144,8 +153,8 @@ export class CafeScene {
     ctx.clip(this.window);
     ctx.lineWidth = 1.2;
     ctx.lineCap = 'round';
-    for (const drop of this.drops) {
-      const y = (drop.y + t * drop.speed) % 640 - 50;
+    for (const drop of this.drops.slice(0, Math.round(this.drops.length * weather.intensity))) {
+      const y = (drop.y + t * drop.speed * (.5 + weather.intensity * .7)) % 640 - 50;
       const x = drop.x - y * 0.045;
       ctx.strokeStyle = `rgba(203, 222, 235, ${drop.alpha})`;
       ctx.beginPath();
@@ -154,7 +163,7 @@ export class CafeScene {
       ctx.stroke();
     }
     // Beads gather and slide slowly down the foreground glass.
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0; i < Math.round(24 * weather.intensity); i++) {
       const y = (i * 97 + t * (5 + i % 4)) % 590;
       const x = 760 + (i * 71) % 760;
       ctx.beginPath();
@@ -162,6 +171,10 @@ export class CafeScene {
       ctx.fillStyle = 'rgba(220, 227, 219, .22)';
       ctx.fill();
     }
+    ctx.save();
+    ctx.scale(1672 / 480, 941 / 270);
+    drawSceneStory(ctx, 'tram', t);
+    ctx.restore();
     ctx.restore();
 
     // Slow wisps fade before restarting, anchored to the drawn cup.
