@@ -63,3 +63,12 @@ test('motion follows the system by default and rejects malformed saved choices',
   assert.equal(readPreferences('{"motion":"false"}').motion, null);
   assert.equal(readPreferences('{"motion":true}').motion, true);
 });
+
+
+test('background selection survives reload and invalid saved backgrounds use the default', () => {
+  assert.equal(readPreferences('{"background":"snow-cabin"}').background, 'snow-cabin');
+  assert.equal(readPreferences('{"background":"night-roof","motion":false}').motion, false);
+  assert.equal(readPreferences('{"background":"missing"}').background, 'rain-room');
+  assert.equal(readPreferences('{"background":null}').background, 'rain-room');
+  assert.equal(readPreferences(null).background, 'rain-room');
+});

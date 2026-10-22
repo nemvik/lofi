@@ -6,6 +6,6 @@
   "scripts": {
     "dev": "python3 -m http.server 4173 --bind 127.0.0.1 --directory dist",
     "test": "node --test --test-isolation=none tests/*.test.mjs",
-    "check": "node --check dist/app.js && node --check dist/audio.js && node --check dist/catalog.js && node --check dist/model.js && node --check dist/scene.js"
+    "check": "node --check dist/app.js && node --check dist/audio.js && node --check dist/catalog.js && node --check dist/model.js && node --check dist/scene.js && node --check dist/backgrounds.js && node --check dist/pixel-atmosphere.js"
   }
 }

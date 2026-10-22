@@ -1,4 +1,5 @@
 import { TRACKS } from './catalog.js';
+import { findBackground } from './backgrounds.js';
 
 export class FocusTimer {
   constructor(minutes = 25) {
@@ -35,7 +36,7 @@ export class FocusTimer {
 }
 
 export function readPreferences(raw) {
-  const defaults = { track: 0, volume: 65, rain: 0, cafe: 12, vinyl: 16, motion: null };
+  const defaults = { track: 0, volume: 65, rain: 0, cafe: 12, vinyl: 16, motion: null, background: 'rain-room' };
   let parsed;
   try {
     parsed = JSON.parse(raw);
@@ -52,6 +53,7 @@ export function readPreferences(raw) {
     defaults.track = parsed.track;
   }
   if (typeof parsed.motion === 'boolean') defaults.motion = parsed.motion;
+  defaults.background = findBackground(parsed.background).id;
   return defaults;
 }
 

@@ -2,6 +2,7 @@ import { LofiEngine, TRACKS } from './audio.js';
 import { FocusTimer, encodeWav, readPreferences } from './model.js';
 import { CafeScene } from './scene.js';
 import { STYLES } from './catalog.js';
+import { BACKGROUNDS, findBackground } from './backgrounds.js';
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
@@ -17,16 +18,71 @@ let operation = 0;
 let toastTimeout;
 let timerDone = false;
 let isFocused = false;
+let backgroundOperation = 0;
 const rememberedSounds = { rain: 35, cafe: 25, vinyl: 25 };
 const soundNames = { rain: 'déšť', cafe: 'zvuky kavárny', vinyl: 'praskání vinylu' };
 const scene = new CafeScene($('#scene-animation'), preferences.motion, (enabled, followsSystem) => {
+  document.body.classList.toggle('motion-paused', !enabled);
   const button = $('#motion-toggle');
   button.setAttribute('aria-pressed', String(enabled));
   button.setAttribute('aria-label', enabled ? 'Pozastavit animaci pozadí' : 'Zapnout animaci pozadí');
   button.title = followsSystem ? 'Animace se řídí nastavením omezeného pohybu v zařízení' : button.getAttribute('aria-label');
-  button.querySelector('span').textContent = enabled ? 'Živá kavárna' : 'Klidný obraz';
+  button.querySelector('span').textContent = enabled ? 'Živé pozadí' : 'Klidný obraz';
   icon(button, enabled ? 'pause' : 'play');
+}, findBackground(preferences.background));
+
+$('#background-choices').innerHTML = BACKGROUNDS.map(background => `
+  <button class="background-choice" data-background="${background.id}" aria-pressed="false">
+    <span class="background-preview"><img src="${background.src}" alt="" width="1672" height="941" loading="lazy"><span class="background-selected" aria-hidden="true"><svg><use href="#i-check"/></svg></span></span>
+    <span class="background-copy"><strong>${background.title}</strong><span>${background.note}</span></span>
+  </button>`).join('');
+
+function updateBackgroundLabels(background) {
+  $('.scene-location').textContent = background.location;
+  $('#scene-title').textContent = background.pixel ? background.title : TRACKS[preferences.track].scene;
+  $('#scene-description').textContent = background.caption;
+}
+
+async function selectBackground(id) {
+  const background = findBackground(id);
+  const token = ++backgroundOperation;
+  const message = $('#background-message');
+  message.hidden = true;
+  $('#background-choices').setAttribute('aria-busy', 'true');
+  try {
+    // Decode before swapping so changing scenes never leaves an empty canvas.
+    const image = new Image();
+    image.src = background.src;
+    await image.decode();
+    if (token !== backgroundOperation) return;
+    const art = $('.scene-art');
+    art.src = background.src;
+    art.alt = background.alt;
+    const container = $('.cafe-scene');
+    container.classList.toggle('pixel-scene', background.pixel);
+    container.dataset.background = background.id;
+    container.setAttribute('aria-label', background.title);
+    preferences.background = background.id;
+    scene.setBackground(background);
+    updateBackgroundLabels(background);
+    $$('[data-background].background-choice').forEach(button => {
+      button.setAttribute('aria-pressed', String(button.dataset.background === background.id));
+    });
+    savePreferences();
+  } catch {
+    if (token !== backgroundOperation) return;
+    message.textContent = 'Prostředí se nepodařilo načíst. Zkus ho vybrat znovu.';
+    message.hidden = false;
+  } finally {
+    if (token === backgroundOperation) $('#background-choices').setAttribute('aria-busy', 'false');
+  }
+}
+
+$('#background-choices').addEventListener('click', event => {
+  const button = event.target.closest('button[data-background]');
+  if (button) selectBackground(button.dataset.background);
 });
+selectBackground(preferences.background);
 
 // One catalog supplies both the score and the visible collection.
 $('#music-styles').innerHTML = [{ id: 'all', title: 'Všechny styly' }, ...STYLES].map(style => `
@@ -92,7 +148,7 @@ function updateTrack() {
   const track = TRACKS[preferences.track];
   $('#track-title').textContent = track.title;
   $('#track-description').textContent = track.subtitle;
-  $('#scene-title').textContent = track.scene;
+  updateBackgroundLabels(findBackground(preferences.background));
   document.documentElement.style.setProperty('--amber', track.color);
   $$('.mood').forEach(button => {
     const active = Number(button.dataset.track) === preferences.track;
@@ -186,7 +242,7 @@ function setFocus(enabled) {
   $('#exit-focus').hidden = !enabled;
   $('#focus-mode').setAttribute('aria-pressed', String(enabled));
   // Keep keyboard navigation inside the visible scene and player.
-  for (const element of [$('.site-header'), $('.welcome'), $('.mood-section'), $('.sidebar'), $('.page-footer')]) {
+  for (const element of [$('.site-header'), $('.welcome'), $('.background-section'), $('.mood-section'), $('.sidebar'), $('.page-footer')]) {
     element.inert = enabled;
   }
   if (enabled) $('#exit-focus').focus();

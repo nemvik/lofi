@@ -29,6 +29,10 @@ Je potřeba Python 3 pro lokální server; JavaScript běží v prohlížeči.
 - Export vybrané skladby do stereo 16bitového WAV.
 - Nastavení uložené lokálně, přehrávání vždy až po kliknutí.
 - Animované okno s deštěm, pára nad kávou a jemné světlo lampy a svíček.
+- Čtyři prostředí s náhledy: pixelartový pokoj v dešti, noční střecha,
+  zasněžená chata a původní kavárna. Výběr se ukládá nezávisle na hudbě.
+- Každá pixelartová scéna má vlastní animaci: déšť a pára, hvězdy s občasnou
+  padající hvězdou nebo sníh a kouř z komína.
 - Pozadí lze zastavit i v režimu soustředění. Výchozí pohyb respektuje
   systémové omezení animací; mimo obrazovku a na skryté kartě se zastaví.
 - Klávesy: mezerník přehrávání, M ztlumení, F soustředění, Esc návrat.
@@ -56,6 +60,8 @@ mixér, export WAV, časovač, mobilní šířka a klávesnice.
 - `dist/audio.js`: syntéza a přehrávač; cache tří posledních dekódovaných skladeb.
 - `dist/assets/audio/`: připravené verze vlastních skladeb.
 - `dist/scene.js`: animace zarovnaná s ilustrací, maximálně 24 snímků za sekundu.
+- `dist/backgrounds.js`: prostředí, popisky a souřadnice efektů.
+- `dist/pixel-atmosphere.js`: animace na pixelové mřížce 480 × 270.
 - `dist/model.js`: časovač, validace nastavení a WAV kodér.
 - `tests/`: testy chování.
 - `.openai/hosting.json`: identita soukromého Sites projektu.
@@ -86,6 +92,8 @@ smyčky a omezení cache. `tests/collection-browser.js` ověřuje výběr,
 obnovu nastavení, animaci, omezený pohyb a mobilní zobrazení.
 `tests/styles-browser.js` ověřuje nové styly, filtrování kolekce,
 pohyb mezi skladbami uvnitř stylu a obnovu vybrané skladby po načtení.
+`tests/backgrounds-browser.js` ověřuje načtení a animace všech prostředí,
+pozastavení, obnovení výběru, režim soustředění a mobilní rozložení.
 
 Technický základ: [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API),
 [OfflineAudioContext](https://developer.mozilla.org/en-US/docs/Web/API/OfflineAudioContext)

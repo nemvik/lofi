@@ -1,5 +1,8 @@
 # Café illustration
 
+Pixel-art assets, saved paths and their final Imagegen prompts are in
+[pixel-backgrounds.md](./pixel-backgrounds.md).
+
 Tool: built-in Imagegen. Final project asset: `dist/assets/cafe.png`.
 
 Prompt:

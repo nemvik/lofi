@@ -3,11 +3,11 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#202720">
+    <meta name="theme-color" content="#29231f">
     <meta name="description" content="Tvoje malá lo-fi kavárna. Vlastní jazz, lo-fi hip-hop a chill house, jemné zvuky pozadí a prostor pro tvoje myšlenky.">
     <title>Pokoj — tvoje lo-fi kavárna</title>
     <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
-    <link rel="preload" as="image" href="./assets/cafe.png">
+    <link rel="preload" as="image" href="./assets/pixel-rain.png">
     <link rel="stylesheet" href="./style.css">
     <script type="module" src="./app.js"></script>
   </head>
@@ -57,8 +57,10 @@
 
         <div class="workspace">
           <div class="listening-space">
-            <section class="cafe-scene" aria-label="Ilustrovaná podvečerní kavárna">
-              <img class="scene-art" src="./assets/cafe.png" alt="Útulná kavárna s gramofonem, šálkem kávy a výhledem do deštivé podvečerní ulice" width="1672" height="941">
+            <div class="scene-cabinet">
+              <div class="cabinet-heading" aria-hidden="true"><span><i></i> pokoj / pomalé vysílání</span><span>STEREO FM</span></div>
+            <section class="cafe-scene pixel-scene" data-background="rain-room" aria-label="Pokoj v dešti">
+              <img class="scene-art" src="./assets/pixel-rain.png" alt="Pixelartový podkrovní pokoj s lampou, kávou a výhledem na deštivé město" width="1672" height="941">
               <canvas class="scene-animation" id="scene-animation" aria-hidden="true"></canvas>
               <div class="scene-shade"></div>
               <div class="scene-top">
@@ -69,14 +71,23 @@
                 </div>
               </div>
               <div class="scene-caption">
-                <span class="scene-location">Kavárna Pokoj</span>
-                <h2 id="scene-title">Místo u okna</h2>
-                <p>Tohle místo je dnes tvoje.</p>
+                <span class="scene-location">Někde nad městem</span>
+                <h2 id="scene-title">Pokoj v dešti</h2>
+                <p id="scene-description">Déšť venku. Klid uvnitř.</p>
               </div>
               <button class="scene-play" id="scene-play" aria-label="Pustit hudbu">
                 <svg><use href="#i-play"/></svg><span id="scene-play-label">Pustit hudbu</span>
               </button>
               <span class="scene-corner" aria-hidden="true">Udělej si pohodlí.</span>
+            </section>
+
+              <div class="tuning-strip" aria-hidden="true"><span>88</span><span>92</span><span>96</span><span>100</span><span>104</span><span>108 <small>MHz</small></span><i class="tuning-needle"></i></div>
+            </div>
+
+            <section class="background-section" aria-labelledby="background-heading">
+              <div class="section-heading"><h2 id="background-heading">Kam se dnes schováš?</h2><span>Každé místo má svůj klid.</span></div>
+              <div class="background-choices" id="background-choices" role="group" aria-label="Výběr prostředí"></div>
+              <p class="background-message" id="background-message" role="status" hidden></p>
             </section>
 
             <section class="mood-section" aria-labelledby="mood-heading">
@@ -88,7 +99,12 @@
 
           <aside class="sidebar" aria-label="Zvuky a soustředění">
             <section class="ambience-panel" aria-labelledby="ambience-heading">
-              <div class="panel-heading"><h2 id="ambience-heading">Dolaď si atmosféru</h2><span class="tiny-lines" aria-hidden="true"><i></i><i></i><i></i></span></div>
+              <div class="mixtape" aria-hidden="true">
+                <div class="tape-label"><span>pokoj / mixtape</span><span>A</span></div>
+                <div class="tape-window"><i class="tape-reel"></i><span class="tape-bridge"></span><i class="tape-reel"></i></div>
+                <div class="tape-foot"><span>trochu šumu. hodně klidu.</span><span>C–90</span></div>
+              </div>
+              <div class="panel-heading"><h2 id="ambience-heading">Dolaď si atmosféru</h2><span class="tiny-lines" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
               <p class="panel-description">Malé zvuky, velký rozdíl.</p>
               <div class="sound-row">
                 <div class="sound-top">
@@ -169,7 +185,7 @@
       <p>„Low fidelity“ znamená nižší věrnost zvuku. Tady jsou drobné nedokonalosti součástí nálady: měkké výšky, teplé jazzové akordy, lehce houpavý rytmus a praskání vinylu. Žádné vokály, které by se pletly do myšlenek.</p>
       <h3>Odkud je hudba?</h3>
       <p>Patnáct původních instrumentálních skladeb ve třech stylech: jazzové lo-fi, houpavý lo-fi hip-hop a svižnější chill house. Piano, nylonová kytara a vibrafon se střídají se syntezátory, basou a bicími. Každá skladba má 32 až 64 taktů s obměnami a plynule se opakuje. Všechny nástroje i zvuky kavárny, vinylu a deště jsou syntetické.</p>
-      <p>Za oknem pomalu stéká déšť, nad kávou stoupá pára. Pohyb zastavíš tlačítkem v rohu scény; při systémovém omezení animací je ve výchozím stavu vypnutý.</p>
+      <p>Vyber si pixelartový pokoj v dešti, noční střechu, zasněženou chatu nebo původní kavárnu. Každé prostředí má vlastní animaci a vybírá se nezávisle na hudbě. Pohyb zastavíš tlačítkem v rohu scény; při systémovém omezení animací je ve výchozím stavu vypnutý.</p>
       <p>Hudbu si můžeš stáhnout tlačítkem v přehrávači jako WAV. Soubor obsahuje vybranou skladbu bez zvuků pozadí.</p>
       <button class="dialog-download" id="dialog-download"><svg><use href="#i-download"/></svg>Stáhnout vybranou skladbu</button>
       <div class="keyboard-help"><span><kbd>mezerník</kbd> přehrávání</span><span><kbd>M</kbd> ztlumení</span><span><kbd>F</kbd> soustředění</span></div>
